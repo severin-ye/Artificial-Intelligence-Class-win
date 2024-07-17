@@ -6,6 +6,7 @@ from keras.applications import vgg19
 from keras.preprocessing.image import load_img, img_to_array, save_img
 from keras import backend as K
 from PIL import Image
+import time
 
 # 设置 Keras 后端为 TensorFlow
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -138,14 +139,19 @@ style_reference_image = preprocess_image(style_reference_image_path)  # 预处�
 combination_image = tf.Variable(preprocess_image(base_image_path))  # 初始化生成图像
 
 # 进行4000次迭代，每100次迭代保存一次图像
+import time
+
 iterations = 4000
+start_time = time.time()  # 开始计时
 for i in range(1, iterations + 1):
     loss, grads = compute_loss_and_grads(
         combination_image, base_image, style_reference_image
     )  # 计算损失和梯度
     optimizer.apply_gradients([(grads, combination_image)])  # 应用梯度更新生成图像
     if i % 100 == 0:
-        print("Iteration %d: loss=%.2f" % (i, loss))  # 打印当前迭代次数和损失值
+        end_time = time.time()  # 结束计时
+        print("Iteration %d: loss=%.2f, time=%.2fs" % (i, loss, end_time - start_time))  # 打印当前迭代次数、损失值和时间
+        start_time = time.time()  # 重置开始时间
         img = deprocess_image(combination_image.numpy())  # 后处理生成的图像
         fname = result_prefix + "_at_iteration_%d.png" % i  # 生成保存文件名
         save_img(fname, img)  # 保存图像文件
