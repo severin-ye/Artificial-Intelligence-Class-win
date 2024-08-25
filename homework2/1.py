@@ -11,7 +11,7 @@ import os
 from sklearn.model_selection import train_test_split
 import random
 
-# 手动加载 CIFAR-10 数据集
+# Manually load the CIFAR-10 dataset
 def load_cifar10_batch(batch_id):
     with open(f'./cifar-10-python/cifar-10-batches-py/data_batch_{batch_id}', 'rb') as file:
         batch = pickle.load(file, encoding='latin1')
@@ -37,7 +37,7 @@ y_train = np.concatenate(y_train)
 
 x_test, y_test = load_cifar10_test()
 
-# 数据预处理
+# Data preprocessing
 x_train = x_train.astype(np.float32) / 255.0
 y_train = tf.keras.utils.to_categorical(y_train, 10)
 
@@ -47,16 +47,16 @@ y_test = tf.keras.utils.to_categorical(y_test, 10)
 print(f'x_train shape: {x_train.shape}, y_train shape: {y_train.shape}')
 print(f'x_test shape: {x_test.shape}, y_test shape: {y_test.shape}')
 
-# 划分验证集
+# Split validation set
 x_val, _, y_val, _ = train_test_split(x_test, y_test, test_size=0.6, random_state=1)
 
 input_shape = x_train.shape[1:]
 
-# 确保两种模型使用相同的超参数
+# Ensure both models use the same hyperparameters
 g_epoch = 70
 g_batch = 64
 
-# 重置随机种子函数以确保可重复性
+# Reset random seed function to ensure reproducibility
 def reset_random_seeds():
     os.environ['PYTHONHASHSEED'] = str(1)
     tf.random.set_seed(1)
@@ -64,11 +64,11 @@ def reset_random_seeds():
     random.seed(1)
     os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
-reset_random_seeds() # 调用重置随机种子函数
+reset_random_seeds() # Call reset random seeds function
 
-print("reduced train/val size:", len(x_train), len(x_val), "input shape:", input_shape)
+print("Reduced train/val size:", len(x_train), len(x_val), "Input shape:", input_shape)
 
-# 定义基线模型
+# Define baseline model
 cnn = Sequential([
     Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3)),
     MaxPooling2D(pool_size=(2, 2)),
@@ -88,54 +88,54 @@ cnn = Sequential([
     Dense(10, activation='softmax')
 ])
 
-# 编译基线模型
+# Compile baseline model
 cnn.compile(loss='categorical_crossentropy', optimizer=Adam(0.00002), metrics=['accuracy'])
 cnn.summary()
 
-# 训练基线模型
+# Train baseline model
 hist = cnn.fit(x_train, y_train, batch_size=g_batch, epochs=g_epoch, validation_data=(x_val, y_val), verbose=1)
 
-# 保存基线模型
+# Save baseline model
 cnn.save('baseline_model.h5')
 
-# 评估基线模型
+# Evaluate baseline model
 g_org_res = cnn.evaluate(x_test, y_test, verbose=0)
-print("Baseline 정확률은", g_org_res[1] * 100)
+print("Baseline accuracy is", g_org_res[1] * 100)
 
-# 重置随机种子以确保可重复性
+# Reset random seeds to ensure reproducibility
 reset_random_seeds()
 
-# 加载ResNet50模型，使用预训练权重
+# Load ResNet50 model with pretrained weights
 transfermodel = ResNet50(weights='imagenet', include_top=False, input_shape=input_shape)
 
-# 定义迁移学习模型架构
+# Define transfer learning model architecture
 model = Sequential([
-    transfermodel,     # 使用预训练的ResNet50模型
-    Flatten(),         # 展平层
-    Dense(1000, activation='relu'),  # 全连接层
-    Dense(10, activation='softmax')  # 输出层
+    transfermodel,     # Use the pretrained ResNet50 model
+    Flatten(),         # Flatten layer
+    Dense(1000, activation='relu'),  # Fully connected layer
+    Dense(10, activation='softmax')  # Output layer
 ])
 
-# 编译迁移学习模型
+# Compile transfer learning model
 model.compile(loss='categorical_crossentropy', optimizer=Adam(0.00002), metrics=['accuracy'])
 model.summary()
 
-# 训练迁移学习模型
+# Train transfer learning model
 hist = model.fit(x_train, y_train, batch_size=g_batch, epochs=g_epoch, validation_data=(x_val, y_val), verbose=1)
 
-# 保存迁移学习模型
+# Save transfer learning model
 model.save('transfer_learning_model.h5')
 
-# 评估迁移学习模型
+# Evaluate transfer learning model
 yours = model.evaluate(x_test, y_test, verbose=0)
 print("Baseline vs yours: ", g_org_res[1] * 100, yours[1] * 100)
 
-# 加载并评估保存的基线模型
+# Load and evaluate saved baseline model
 loaded_baseline_model = load_model('baseline_model.h5')
 loaded_baseline_accuracy = loaded_baseline_model.evaluate(x_test, y_test, verbose=0)
-print("Loaded Baseline 정확률은", loaded_baseline_accuracy[1] * 100)
+print("Loaded Baseline accuracy is", loaded_baseline_accuracy[1] * 100)
 
-# 加载并评估保存的迁移学习模型
+# Load and evaluate saved transfer learning model
 loaded_transfer_model = load_model('transfer_learning_model.h5')
 loaded_transfer_accuracy = loaded_transfer_model.evaluate(x_test, y_test, verbose=0)
-print("Loaded Transfer Learning 정확률은", loaded_transfer_accuracy[1] * 100)
+print("Loaded Transfer Learning accuracy is", loaded_transfer_accuracy[1] * 100)

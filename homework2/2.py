@@ -11,7 +11,7 @@ import os
 from sklearn.model_selection import train_test_split
 import random
 
-# 手动加载 CIFAR-10 数据集的单个批次
+# Manually load a single batch of the CIFAR-10 dataset
 def load_cifar10_batch(batch_id):
     with open(f'./cifar-10-python/cifar-10-batches-py/data_batch_{batch_id}', 'rb') as file:
         batch = pickle.load(file, encoding='latin1')
@@ -19,7 +19,7 @@ def load_cifar10_batch(batch_id):
     labels = batch['labels']
     return features, labels
 
-# 加载 CIFAR-10 数据集的测试集
+# Load the test set of the CIFAR-10 dataset
 def load_cifar10_test():
     with open('./cifar-10-python/cifar-10-batches-py/test_batch', 'rb') as file:
         batch = pickle.load(file, encoding='latin1')
@@ -27,6 +27,7 @@ def load_cifar10_test():
     labels = batch['labels']
     return features, labels
 
+# Reset random seeds to ensure reproducibility
 def reset_random_seeds():
     os.environ['PYTHONHASHSEED'] = str(1)
     tf.random.set_seed(1)
@@ -34,7 +35,7 @@ def reset_random_seeds():
     random.seed(1)
     os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
-# 加载和预处理数据
+# Load and preprocess data
 def load_and_preprocess_data():
     x_train, y_train = [], []
     for i in range(1, 6):
@@ -56,7 +57,7 @@ def load_and_preprocess_data():
     
     return x_train, y_train, x_val, y_val, x_test, y_test
 
-# 构建和训练模型
+# Build and train model
 def build_and_train_model(model, x_train, y_train, x_val, y_val, epochs, batch_size, model_name):
     datagen = ImageDataGenerator(
         rotation_range=15,
@@ -76,7 +77,7 @@ def build_and_train_model(model, x_train, y_train, x_val, y_val, epochs, batch_s
     print(f"{model_name} saved as '{model_name}.h5'")
     return model
 
-# 基线模型
+# Baseline model
 def build_baseline_model(input_shape):
     return Sequential([
         Input(shape=input_shape),
@@ -98,7 +99,7 @@ def build_baseline_model(input_shape):
         Dense(10, activation='softmax')
     ])
 
-# 迁移学习模型
+# Transfer learning model
 def build_transfer_learning_model(input_shape):
     transfermodel = ResNet50(weights='imagenet', include_top=False, input_shape=input_shape)
     return Sequential([
@@ -108,7 +109,7 @@ def build_transfer_learning_model(input_shape):
         Dense(10, activation='softmax')
     ])
 
-# 主程序
+# Main program
 if __name__ == "__main__":
     reset_random_seeds()
     
@@ -116,12 +117,12 @@ if __name__ == "__main__":
     
     print(f'x_train shape: {x_train.shape}, y_train shape: {y_train.shape}')
     print(f'x_test shape: {x_test.shape}, y_test shape: {y_test.shape}')
-    print("reduced train/val size:", len(x_train), len(x_val), "input shape:", x_train.shape[1:])
+    print("Reduced train/val size:", len(x_train), len(x_val), "Input shape:", x_train.shape[1:])
     
     epochs = 70
     batch_size = 64
     
-    # 基线模型
+    # Baseline model
     baseline_model = build_baseline_model(x_train.shape[1:])
     baseline_model = build_and_train_model(baseline_model, x_train, y_train, x_val, y_val, epochs, batch_size, 'baseline_model')
     baseline_accuracy = baseline_model.evaluate(x_test, y_test, verbose=0)
@@ -129,13 +130,13 @@ if __name__ == "__main__":
     
     reset_random_seeds()
     
-    # 迁移学习模型
+    # Transfer learning model
     transfer_learning_model = build_transfer_learning_model(x_train.shape[1:])
     transfer_learning_model = build_and_train_model(transfer_learning_model, x_train, y_train, x_val, y_val, epochs, batch_size, 'transfer_learning_model')
     transfer_learning_accuracy = transfer_learning_model.evaluate(x_test, y_test, verbose=0)
     print("Transfer learning model accuracy: ", transfer_learning_accuracy[1] * 100)
     
-    # 加载和评估保存的模型
+    # Load and evaluate saved models
     loaded_baseline_model = load_model('baseline_model.h5')
     loaded_baseline_accuracy = loaded_baseline_model.evaluate(x_test, y_test, verbose=0)
     print("Loaded Baseline model accuracy: ", loaded_baseline_accuracy[1] * 100)
